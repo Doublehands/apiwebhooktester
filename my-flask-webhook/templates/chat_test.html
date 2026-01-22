@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freshchat 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f5f7fb;
+        }
+        .info {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 8px 16px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 5px 0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>🧪 Freshchat 气泡测试页面</h1>
+        <p>这是一个简化的测试页面，用于检查 Freshchat 聊天气泡是否正常加载。</p>
+        <div id="status"></div>
+    </div>
+
+    <div class="info">
+        <h3>📋 检查步骤</h3>
+        <ol>
+            <li>打开浏览器开发者工具（F12）</li>
+            <li>查看 Console 标签页</li>
+            <li>检查是否有错误信息</li>
+            <li>查看 Network 标签页，确认脚本是否加载</li>
+            <li>等待 5-10 秒，看右下角是否出现聊天气泡</li>
+        </ol>
+    </div>
+
+    <div class="info">
+        <h3>🔍 调试信息</h3>
+        <p>脚本 URL: <code>https://au.fw-cdn.com/20961549/381095.js</code></p>
+        <p>如果气泡没有出现，可能的原因：</p>
+        <ul>
+            <li>Freshchat 脚本 ID 不正确</li>
+            <li>Freshchat Widget 未启用</li>
+            <li>网络连接问题</li>
+            <li>脚本被广告拦截器阻止</li>
+        </ul>
+    </div>
+
+    <!-- Freshchat Widget Script -->
+    <script>
+        console.log('🔄 开始加载 Freshchat 脚本...');
+        
+        // 检测脚本加载状态
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (typeof fcWidget !== 'undefined') {
+                    console.log('✅ Freshchat 脚本加载成功！');
+                    document.getElementById('status').innerHTML = 
+                        '<div class="status success">✅ Freshchat 脚本加载成功</div>';
+                } else {
+                    console.log('❌ Freshchat 脚本加载失败');
+                    document.getElementById('status').innerHTML = 
+                        '<div class="status error">❌ Freshchat 脚本加载失败</div>' +
+                        '<p>请检查：</p>' +
+                        '<ul>' +
+                        '<li>脚本 ID 是否正确</li>' +
+                        '<li>Freshchat Widget 是否已启用</li>' +
+                        '<li>浏览器控制台是否有错误</li>' +
+                        '</ul>';
+                }
+            }, 3000);
+        });
+    </script>
+    
+    <script src='https://au.fw-cdn.com/20961549/381095.js' chat='true'></script>
+
+    <script>
+        // 监听 Freshchat 事件
+        function initFreshchat() {
+            if (typeof fcWidget !== 'undefined') {
+                console.log('🎯 初始化 Freshchat 事件监听...');
+                
+                fcWidget.on("widget:loaded", function() {
+                    console.log("✅ Freshchat Widget 已加载");
+                });
+                
+                fcWidget.on("widget:opened", function() {
+                    console.log("💬 Freshchat 窗口已打开");
+                });
+                
+                fcWidget.on("message:sent", function() {
+                    console.log("📤 消息已发送");
+                });
+                
+                fcWidget.on("message:received", function() {
+                    console.log("📥 收到新消息");
+                });
+            } else {
+                console.log('⏳ Freshchat 尚未加载，2秒后重试...');
+                setTimeout(initFreshchat, 2000);
+            }
+        }
+        
+        // 延迟初始化
+        setTimeout(initFreshchat, 1000);
+    </script>
+</body>
+</html>

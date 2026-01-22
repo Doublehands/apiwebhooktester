@@ -29,6 +29,7 @@
     <nav>
       <a href="/" class="{{ 'active' if request.path == '/' else '' }}">Home</a>
       <a href="/agent" class="{{ 'active' if request.path.startswith('/agent') else '' }}">Agent API</a>
+      <a href="/webhook-test" class="{{ 'active' if request.path.startswith('/webhook-test') else '' }}">🧪 Webhook Test</a>
       <a href="/webhooks" class="{{ 'active' if request.path.startswith('/webhooks') else '' }}">Webhook Logs</a>
       <a href="/freshchat" class="{{ 'active' if request.path.startswith('/freshchat') else '' }}">Freshchat</a>
       <a href="/chat" class="{{ 'active' if request.path == '/chat' else '' }}">💬 Live Chat</a>

@@ -71,11 +71,23 @@ def build_agent_url(path):
 
 @app.route('/freshchat-webhook', methods=['POST'])
 def webhook():
+    """接收 Freshchat Webhook"""
+    print("\n" + "="*70)
+    print("🔔 收到 Freshchat Webhook 请求")
+    print("="*70)
+    
+    # 获取签名和 payload
     signature = request.headers.get('X-Freshchat-Signature')
     payload = request.get_data(as_text=True)
-
+    
+    print(f"📋 Headers: {dict(request.headers)}")
+    print(f"🔐 Signature: {signature[:50] if signature else 'None'}...")
+    
+    # 验证签名（如果配置了 Public Key）
     if FRESHCHAT_PUBLIC_KEY:
+        print("🔒 开始验证签名...")
         if not signature:
+            print("❌ 缺少签名")
             return jsonify({'error': 'Missing signature'}), 401
         try:
             signature_bytes = base64.b64decode(signature)
@@ -85,40 +97,97 @@ def webhook():
                 padding.PKCS1v15(),
                 hashes.SHA256()
             )
-        except Exception:
+            print("✅ 签名验证通过")
+        except Exception as e:
+            print(f"❌ 签名验证失败: {e}")
             return jsonify({'error': 'Invalid signature'}), 401
+    else:
+        print("⚠️  跳过签名验证（未配置 Public Key）")
 
-    data = request.json
+    # 解析 JSON 数据
+    try:
+        data = request.json
+    except Exception as e:
+        print(f"❌ 无法解析 JSON: {e}")
+        return jsonify({'error': 'Invalid JSON'}), 400
+    
+    # 记录到 webhook 日志
     log_webhook('freshchat', data, dict(request.headers))
+    
+    print(f"📦 Webhook 数据: {json.dumps(data, indent=2, ensure_ascii=False)[:500]}...")
     
     # 检查是否是用户消息
     try:
-        if data.get('action') == 'message_create':
+        action = data.get('action')
+        print(f"🎬 Action: {action}")
+        
+        if action == 'message_create':
             message_data = data.get('data', {}).get('message', {})
             actor_type = message_data.get('actor_type')
+            conversation_id = message_data.get('conversation_id')
+            user_id = message_data.get('user_id')
+            
+            print(f"👤 Actor Type: {actor_type}")
+            print(f"💬 Conversation ID: {conversation_id}")
+            print(f"🆔 User ID: {user_id}")
             
             # 只处理用户发送的消息，忽略 agent 自己的消息
             if actor_type == 'user':
                 message_parts = message_data.get('message_parts', [])
+                print(f"📝 Message Parts: {message_parts}")
+                
                 if message_parts and 'text' in message_parts[0]:
                     user_message = message_parts[0]['text']['content']
-                    conversation_id = message_data.get('conversation_id')
-                    user_id = message_data.get('user_id')
                     
-                    print(f"📨 收到 Freshchat 消息: {user_message[:50]}...")
+                    print(f"\n{'='*70}")
+                    print(f"✅ 成功提取消息信息:")
+                    print(f"   - Conversation ID: {conversation_id}")
+                    print(f"   - User ID: {user_id}")
+                    print(f"   - Message: {user_message}")
+                    print(f"{'='*70}\n")
                     
                     # 调用 AI Agent 获取回复
+                    print("🤖 开始调用 AI Agent...")
                     ai_response = call_ai_agent(user_message, user_id=f"freshchat_{user_id}")
+                    print(f"💡 AI 回复: {ai_response[:100]}...")
                     
                     # 发送回复到 Freshchat
-                    send_response_to_freshchat(conversation_id, user_id, ai_response)
+                    print("📤 发送回复到 Freshchat...")
+                    success = send_response_to_freshchat(conversation_id, user_id, ai_response)
                     
-                    return jsonify({'status': 'Message processed'}), 200
+                    if success:
+                        print("✅ Webhook 处理完成\n")
+                        return jsonify({
+                            'status': 'success',
+                            'message': 'Message processed',
+                            'conversation_id': conversation_id,
+                            'user_id': user_id
+                        }), 200
+                    else:
+                        print("⚠️  回复发送失败\n")
+                        return jsonify({
+                            'status': 'partial_success',
+                            'message': 'Message received but reply failed',
+                            'conversation_id': conversation_id
+                        }), 200
+                else:
+                    print("⚠️  消息格式不正确或不包含文本内容")
+            else:
+                print(f"ℹ️  忽略非用户消息 (actor_type: {actor_type})")
+        else:
+            print(f"ℹ️  忽略事件类型: {action}")
         
-        return jsonify({'status': 'Event ignored'}), 200
+        print("="*70 + "\n")
+        return jsonify({'status': 'ignored', 'action': action}), 200
+        
     except Exception as e:
-        print(f"❌ 处理 Freshchat webhook 失败: {e}")
-        return jsonify({'status': 'Error', 'message': str(e)}), 500
+        print(f"\n❌ 处理 Freshchat webhook 失败:")
+        print(f"   错误: {e}")
+        print(f"   类型: {type(e).__name__}")
+        import traceback
+        print(f"   堆栈: {traceback.format_exc()}")
+        print("="*70 + "\n")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/agent/webhook', methods=['POST'])
 def agent_webhook():
@@ -243,6 +312,65 @@ def chat_page():
         freshchat_configured=bool(FRESHCHAT_BASE_URL and FRESHCHAT_TOKEN)
     )
 
+@app.route('/chat-test')
+def chat_test_page():
+    """Freshchat 气泡调试页面"""
+    return render_template('chat_test.html')
+
+@app.route('/webhook-test')
+def webhook_test_page():
+    """Webhook 测试页面"""
+    return render_template('webhook_simple.html', test_result=None)
+
+@app.route('/webhook-test/send', methods=['POST'])
+def webhook_test_send():
+    """发送测试 webhook"""
+    conversation_id = request.form.get('conversation_id')
+    user_id = request.form.get('user_id')
+    message = request.form.get('message')
+    
+    # 构造 Freshchat webhook 格式的数据
+    webhook_data = {
+        'action': 'message_create',
+        'data': {
+            'message': {
+                'actor_type': 'user',
+                'conversation_id': conversation_id,
+                'user_id': user_id,
+                'message_parts': [
+                    {
+                        'text': {
+                            'content': message
+                        }
+                    }
+                ]
+            }
+        }
+    }
+    
+    result = {
+        'sent_data': webhook_data,
+        'success': False
+    }
+    
+    try:
+        # 发送到 webhook 端点
+        response = requests.post(
+            f'{request.host_url}freshchat-webhook',
+            json=webhook_data,
+            headers={'Content-Type': 'application/json'},
+            timeout=30
+        )
+        
+        result['webhook_response'] = response.json()
+        result['status_code'] = response.status_code
+        result['success'] = response.status_code == 200
+        
+    except Exception as e:
+        result['error'] = str(e)
+    
+    return render_template('webhook_simple.html', test_result=result)
+
 def call_ai_agent(message, user_id='freshchat_user'):
     """调用 GPTBots Agent 获取回复"""
     try:
@@ -292,9 +420,12 @@ def send_response_to_freshchat(conversation_id, user_id, response):
         ],
         'message_type': 'normal',
         'actor_type': 'agent',
-        'actor_id': FRESHCHAT_ACTOR_ID,
         'user_id': user_id
     }
+    
+    # 如果配置了 Actor ID，则添加到请求中
+    if FRESHCHAT_ACTOR_ID and FRESHCHAT_ACTOR_ID != 'gptbots_agent':
+        body['actor_id'] = FRESHCHAT_ACTOR_ID
     
     try:
         resp = requests.post(url, headers=headers, json=body, timeout=30)
@@ -418,3 +549,6 @@ def send_message(user_id, message, conversation_id=None):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
+
+# Vercel serverless function handler
+app = app

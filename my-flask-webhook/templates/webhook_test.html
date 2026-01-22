@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>🧪 Webhook 测试工具</h1>
+  
+  <div class="card">
+    <h3>📡 Webhook 端点</h3>
+    <pre style="background: #2c3e50; color: #ecf0f1; padding: 12px; border-radius: 4px; overflow-x: auto;">POST https://apiwebhooktester-z83n.vercel.app/freshchat-webhook</pre>
+  </div>
+
+  <div class="card">
+    <h3>🧪 模拟 Freshchat Webhook</h3>
+    <p>使用下面的表单发送测试 webhook 请求</p>
+    
+    <form method="post" action="/webhook-test/send">
+      <label for="conversation_id">Conversation ID</label>
+      <input type="text" id="conversation_id" name="conversation_id" value="test_conv_12345" required>
+      
+      <label for="user_id" style="margin-top: 12px;">User ID</label>
+      <input type="text" id="user_id" name="user_id" value="test_user_456" required>
+      
+      <label for="message" style="margin-top: 12px;">消息内容</label>
+      <textarea id="message" name="message" placeholder="输入测试消息" required>你好，这是一条测试消息</textarea>
+      
+      <div style="margin-top: 12px;">
+        <button type="submit">发送测试 Webhook</button>
+      </div>
+    </form>
+  </div>
+
+  {% if test_result %}
+  <div class="card">
+    <h3>📊 测试结果</h3>
+    <div style="margin-bottom: 16px;">
+      <strong>状态:</strong> 
+      <span class="status {{ 'ok' if test_result.success else 'warn' }}">
+        {{ '✅ 成功' if test_result.success else '❌ 失败' }}
+      </span>
+    </div>
+    
+    {% if test_result.webhook_response %}
+    <div style="margin-bottom: 16px;">
+      <strong>Webhook 响应:</strong>
+      <pre>{{ test_result.webhook_response | tojson(indent=2) }}</pre>
+    </div>
+    {% endif %}
+    
+    {% if test_result.error %}
+    <div style="margin-bottom: 16px; color: #e74c3c;">
+      <strong>错误信息:</strong>
+      <pre>{{ test_result.error }}</pre>
+    </div>
+    {% endif %}
+    
+    <div>
+      <strong>发送的数据:</strong>
+      <pre>{{ test_result.sent_data | tojson(indent=2) }}</pre>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h3>📋 使用 curl 测试</h3>
+    <p>你也可以使用 curl 命令测试 webhook：</p>
+    <pre style="background: #2c3e50; color: #ecf0f1; padding: 12px; border-radius: 4px; overflow-x: auto;">curl -X POST https://apiwebhooktester-z83n.vercel.app/freshchat-webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "message_create",
+    "data": {
+      "message": {
+        "actor_type": "user",
+        "conversation_id": "test_conv_123",
+        "user_id": "test_user_456",
+        "message_parts": [
+          {
+            "text": {
+              "content": "你好，这是测试消息"
+            }
+          }
+        ]
+      }
+    }
+  }'</pre>
+  </div>
+
+  <div class="card">
+    <h3>📊 查看日志</h3>
+    <p>发送测试后，访问 <a href="/webhooks" style="color: #3498db;">Webhook 日志页面</a> 查看详细信息</p>
+    <p class="meta">日志会显示：</p>
+    <ul>
+      <li>接收到的完整 webhook 数据</li>
+      <li>提取的 conversation_id 和 user_id</li>
+      <li>AI 回复内容</li>
+      <li>发送到 Freshchat 的响应</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>🔍 Freshchat Webhook 数据格式</h3>
+    <p>Freshchat 发送的 webhook 数据结构：</p>
+    <pre style="background: #f9fafb; padding: 12px; border-radius: 4px; overflow-x: auto;">{
+  "action": "message_create",
+  "data": {
+    "message": {
+      "actor_type": "user",
+      "conversation_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "user_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "message_parts": [
+        {
+          "text": {
+            "content": "用户消息内容"
+          }
+        }
+      ],
+      "created_time": "2026-01-22T10:30:00.000Z",
+      ...
+    }
+  }
+}</pre>
+  </div>
+{% endblock %}
