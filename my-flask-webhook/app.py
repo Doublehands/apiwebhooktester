@@ -27,7 +27,7 @@ FRESHCHAT_BASE_URL = os.environ.get(
     'FRESHCHAT_BASE_URL',
     'https://zego-933915710582838602-cf5ef642f0f082017690489.freshchat.com/v2'
 ).rstrip('/')
-FRESHCHAT_ACTOR_ID = os.environ.get('FRESHCHAT_ACTOR_ID', 'gptbots_agent')  # Agent ID in Freshchat
+FRESHCHAT_ACTOR_ID = os.environ.get('FRESHCHAT_ACTOR_ID', '2e6a98aa-5155-4b3e-9745-96a784e79eb2')  # Jacky Lee (Agent ID)
 
 def load_freshchat_public_key():
     if not FRESHCHAT_PUBLIC_KEY_PEM:
@@ -431,9 +431,8 @@ def send_response_to_freshchat(conversation_id, user_id, response):
         'user_id': user_id
     }
     
-    # 如果配置了 Actor ID，则添加到请求中
-    if FRESHCHAT_ACTOR_ID and FRESHCHAT_ACTOR_ID != 'gptbots_agent':
-        body['actor_id'] = FRESHCHAT_ACTOR_ID
+    # 添加 actor_id（必需）
+    body['actor_id'] = FRESHCHAT_ACTOR_ID
     
     try:
         resp = requests.post(url, headers=headers, json=body, timeout=30)
