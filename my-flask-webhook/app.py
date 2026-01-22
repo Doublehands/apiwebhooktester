@@ -40,6 +40,8 @@ def load_freshchat_public_key():
 FRESHCHAT_PUBLIC_KEY = load_freshchat_public_key()
 
 WEBHOOK_LOGS = deque(maxlen=200)
+PROCESSED_MESSAGES = {}  # 存储已处理的消息 ID，防止重复处理
+CONVERSATION_MAPPING = {}  # Freshchat conversation_id -> GPTBots conversation_id 映射
 
 def utc_now_iso():
     return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -84,7 +86,7 @@ def webhook():
     print(f"📋 Headers: {dict(request.headers)}")
     print(f"🔐 Signature: {signature[:50] if signature else 'None'}...")
     print(f"🧪 Test Mode: {test_mode}")
-    
+
     # 验证签名（如果配置了 Public Key 且不是测试模式）
     if FRESHCHAT_PUBLIC_KEY and not test_mode:
         print("🔒 开始验证签名...")
@@ -139,21 +141,70 @@ def webhook():
             # 只处理用户发送的消息，忽略 agent 自己的消息
             if actor_type == 'user':
                 message_parts = message_data.get('message_parts', [])
+                message_id = message_data.get('id')  # 消息的唯一 ID
+                
+                print(f"📝 Message ID: {message_id}")
                 print(f"📝 Message Parts: {message_parts}")
+                
+                # 检查是否已处理过这条消息（防止重复）
+                if message_id and message_id in PROCESSED_MESSAGES:
+                    print(f"⚠️  消息已处理过，跳过: {message_id}")
+                    return jsonify({
+                        'status': 'ignored',
+                        'message': 'Message already processed',
+                        'message_id': message_id
+                    }), 200
                 
                 if message_parts and 'text' in message_parts[0]:
                     user_message = message_parts[0]['text']['content']
                     
                     print(f"\n{'='*70}")
                     print(f"✅ 成功提取消息信息:")
+                    print(f"   - Message ID: {message_id}")
                     print(f"   - Conversation ID: {conversation_id}")
                     print(f"   - User ID: {user_id}")
                     print(f"   - Message: {user_message}")
                     print(f"{'='*70}\n")
                     
+                    # 标记消息为已处理
+                    if message_id:
+                        PROCESSED_MESSAGES[message_id] = {
+                            'time': utc_now_iso(),
+                            'conversation_id': conversation_id
+                        }
+                        # 只保留最近 1000 条
+                        if len(PROCESSED_MESSAGES) > 1000:
+                            oldest_key = next(iter(PROCESSED_MESSAGES))
+                            del PROCESSED_MESSAGES[oldest_key]
+                    
+                    # 获取或创建 GPTBots conversation_id（保持会话连续性）
+                    gptbots_conversation_id = CONVERSATION_MAPPING.get(conversation_id)
+                    
+                    if gptbots_conversation_id:
+                        print(f"🔗 使用已存在的 GPTBots 会话: {gptbots_conversation_id}")
+                    else:
+                        print(f"🆕 将为此 Freshchat 会话创建新的 GPTBots 会话")
+                    
                     # 调用 AI Agent 获取回复
                     print("🤖 开始调用 AI Agent...")
-                    ai_response = call_ai_agent(user_message, user_id=f"freshchat_{user_id}")
+                    ai_result = send_message(f"freshchat_{user_id}", user_message, gptbots_conversation_id)
+                    
+                    if ai_result.get('error'):
+                        print(f"❌ AI Agent 调用失败: {ai_result.get('error')}")
+                        return jsonify({
+                            'status': 'error',
+                            'message': 'AI Agent call failed',
+                            'error': ai_result.get('error')
+                        }), 500
+                    
+                    # 保存会话映射
+                    new_gptbots_conv_id = ai_result.get('conversation_id')
+                    if new_gptbots_conv_id and not gptbots_conversation_id:
+                        CONVERSATION_MAPPING[conversation_id] = new_gptbots_conv_id
+                        print(f"💾 保存会话映射: {conversation_id} → {new_gptbots_conv_id}")
+                    
+                    # 提取 AI 回复
+                    ai_response = extract_ai_response(ai_result)
                     print(f"💡 AI 回复: {ai_response[:100]}...")
                     
                     # 发送回复到 Freshchat
@@ -166,6 +217,7 @@ def webhook():
                             'status': 'success',
                             'message': 'Message processed',
                             'conversation_id': conversation_id,
+                            'gptbots_conversation_id': new_gptbots_conv_id,
                             'user_id': user_id
                         }), 200
                     else:
@@ -379,6 +431,28 @@ def webhook_test_send():
     
     return render_template('webhook_simple.html', test_result=result)
 
+def extract_ai_response(ai_result):
+    """从 AI Agent 的响应中提取回复内容"""
+    response_data = ai_result.get('response', {})
+    
+    # 尝试不同的字段
+    if 'answer' in response_data:
+        return response_data['answer']
+    elif 'message' in response_data:
+        return response_data['message']
+    elif 'content' in response_data:
+        return response_data['content']
+    elif 'data' in response_data and isinstance(response_data['data'], dict):
+        if 'answer' in response_data['data']:
+            return response_data['data']['answer']
+        if 'message' in response_data['data']:
+            return response_data['data']['message']
+        if 'content' in response_data['data']:
+            return response_data['data']['content']
+    
+    # 如果找不到标准字段，返回整个响应的字符串形式
+    return f"AI 回复: {json.dumps(response_data, ensure_ascii=False)}"
+
 def call_ai_agent(message, user_id='freshchat_user'):
     """调用 GPTBots Agent 获取回复"""
     try:
@@ -409,6 +483,15 @@ def call_ai_agent(message, user_id='freshchat_user'):
 
 def send_response_to_freshchat(conversation_id, user_id, response):
     """发送回复到 Freshchat - 使用官方 API 格式"""
+    print(f"\n{'='*70}")
+    print(f"📤 准备发送回复到 Freshchat")
+    print(f"{'='*70}")
+    print(f"Conversation ID: {conversation_id}")
+    print(f"User ID: {user_id}")
+    print(f"Response: {response[:200]}...")
+    print(f"Actor ID: {FRESHCHAT_ACTOR_ID}")
+    print(f"Token: {FRESHCHAT_TOKEN[:50]}...")
+    
     url = f"{FRESHCHAT_BASE_URL}/conversations/{conversation_id}/messages"
     headers = {
         'Authorization': f'Bearer {FRESHCHAT_TOKEN}',
@@ -428,17 +511,22 @@ def send_response_to_freshchat(conversation_id, user_id, response):
         ],
         'message_type': 'normal',
         'actor_type': 'agent',
-        'user_id': user_id
+        'user_id': user_id,
+        'actor_id': FRESHCHAT_ACTOR_ID
     }
     
-    # 添加 actor_id（必需）
-    body['actor_id'] = FRESHCHAT_ACTOR_ID
+    print(f"URL: {url}")
+    print(f"Body: {json.dumps(body, indent=2, ensure_ascii=False)[:500]}...")
+    print(f"{'='*70}\n")
     
     try:
         resp = requests.post(url, headers=headers, json=body, timeout=30)
         resp.raise_for_status()
         print(f"✅ 成功发送回复到 Freshchat: {conversation_id}")
-        print(f"   Response: {resp.json()}")
+        try:
+            print(f"   Response: {resp.json()}")
+        except:
+            print(f"   Response: {resp.text}")
         return True
     except Exception as e:
         print(f"❌ 发送回复到 Freshchat 失败: {e}")
