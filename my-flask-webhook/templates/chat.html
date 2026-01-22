@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>💬 Live Chat Test</h1>
+  
+  <div class="card">
+    <h3>实时聊天测试</h3>
+    <p>这个页面嵌入了 Freshchat 聊天气泡，你可以直接在这里测试真实的对话流程。</p>
+    <p class="meta">点击右下角的聊天气泡开始对话</p>
+  </div>
+
+  <div class="card">
+    <h3>📋 测试流程</h3>
+    <ol style="line-height: 1.8;">
+      <li>点击页面右下角的聊天气泡</li>
+      <li>在聊天窗口中发送消息</li>
+      <li>消息会发送到 Freshchat</li>
+      <li>Freshchat 触发 webhook 到本服务</li>
+      <li>服务调用 GPTBots Agent 获取 AI 回复</li>
+      <li>AI 回复通过 Freshchat API 发送回聊天窗口</li>
+      <li>你会在聊天窗口看到 AI 的回复</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h3>🔍 调试信息</h3>
+    <p>查看详细的 webhook 日志：<a href="/webhooks" style="color: #3498db;">Webhook 日志页面</a></p>
+    <p class="meta">每次对话都会在日志中记录完整的请求和响应信息</p>
+  </div>
+
+  <div class="card">
+    <h3>⚠️ 注意事项</h3>
+    <ul style="line-height: 1.8;">
+      <li><strong>本地测试限制</strong>：Freshchat 无法直接访问 localhost，需要使用内网穿透工具（如 ngrok）</li>
+      <li><strong>Webhook 配置</strong>：确保在 Freshchat 后台配置了正确的 webhook URL</li>
+      <li><strong>API 状态</strong>：确保 GPTBots Agent API 已启用</li>
+    </ul>
+  </div>
+
+  <div class="card" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+    <h3>🚀 使用 ngrok 进行本地测试</h3>
+    <p>由于 Freshchat 需要公网 URL，你需要使用 ngrok 将本地服务暴露到公网：</p>
+    <pre style="background: #2c3e50; color: #ecf0f1; padding: 12px; border-radius: 4px; overflow-x: auto;">
+# 1. 安装 ngrok (如果还没安装)
+brew install ngrok
+
+# 2. 启动 ngrok
+ngrok http 5001
+
+# 3. 复制 ngrok 提供的 HTTPS URL，例如：
+# https://abc123.ngrok.io
+
+# 4. 在 Freshchat 后台配置 Webhook URL：
+# https://abc123.ngrok.io/freshchat-webhook
+    </pre>
+  </div>
+
+  <div class="card">
+    <h3>📊 实时状态</h3>
+    <p>Agent API: <span class="status {{ 'ok' if agent_configured else 'warn' }}">{{ 'Ready' if agent_configured else 'Not Configured' }}</span></p>
+    <p>Freshchat API: <span class="status {{ 'ok' if freshchat_configured else 'warn' }}">{{ 'Ready' if freshchat_configured else 'Not Configured' }}</span></p>
+    <p>Webhook Endpoint: <span class="status ok">/freshchat-webhook</span></p>
+  </div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Freshchat Widget -->
+<script
+  src='//au.fw-cdn.com/20961549/381095.js'
+  chat='true'>
+</script>
+
+<style>
+  /* 确保聊天气泡在页面上可见 */
+  #fc_frame {
+    z-index: 9999 !important;
+  }
+</style>
+
+<script>
+  // 可选：监听 Freshchat 事件
+  window.fcWidget = window.fcWidget || {};
+  
+  // 当聊天窗口打开时
+  window.fcWidget.on("widget:opened", function() {
+    console.log("💬 Freshchat 窗口已打开");
+  });
+  
+  // 当用户发送消息时
+  window.fcWidget.on("message:sent", function() {
+    console.log("📤 消息已发送到 Freshchat");
+    console.log("⏳ 等待 AI 回复...");
+  });
+  
+  // 当收到新消息时
+  window.fcWidget.on("message:received", function() {
+    console.log("📥 收到新消息");
+  });
+</script>
+{% endblock %}

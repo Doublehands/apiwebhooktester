@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Webhook Logs</h1>
+  <div class="card">
+    <form method="post" action="/webhooks/clear">
+      <button type="submit" class="secondary">Clear Logs</button>
+    </form>
+  </div>
+
+  {% if logs %}
+    {% for item in logs %}
+      <div class="card">
+        <div class="meta">{{ item.time }} | {{ item.source }}</div>
+        <h4>Payload</h4>
+        <pre>{{ item.payload }}</pre>
+        <h4>Headers</h4>
+        <pre>{{ item.headers }}</pre>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="card">
+      <p>No webhook payloads received yet.</p>
+    </div>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Agent API</h1>
+  <div class="card">
+    <p>AGENT_BASE_URL: <span class="status {{ 'ok' if agent_base_url else 'warn' }}">{{ agent_base_url or 'Not set' }}</span></p>
+    <p>AGENT_API_KEY: <span class="status {{ 'ok' if has_agent_key else 'warn' }}">{{ 'Set' if has_agent_key else 'Not set' }}</span></p>
+    <p class="meta">Conversation Path: {{ conversation_path }} | Send Path: {{ send_path }}</p>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h3>Create Conversation</h3>
+      <form method="post" action="/agent/conversation">
+        <label for="user_id">user_id</label>
+        <input type="text" id="user_id" name="user_id" value="web">
+        <div style="margin-top: 12px;">
+          <button type="submit">Create</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <h3>Send Message</h3>
+      <form method="post" action="/agent/send">
+        <label for="send_user_id">user_id</label>
+        <input type="text" id="send_user_id" name="user_id" value="web">
+        <label for="conversation_id" style="margin-top: 12px;">conversation_id (optional)</label>
+        <input type="text" id="conversation_id" name="conversation_id" placeholder="Leave blank to create new">
+        <label for="message" style="margin-top: 12px;">message</label>
+        <textarea id="message" name="message" placeholder="Type a message"></textarea>
+        <div style="margin-top: 12px;">
+          <button type="submit">Send</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if last_result %}
+  <div class="card">
+    <h3>📤 Request Details</h3>
+    <pre>{{ last_result.request | tojson(indent=2) if last_result.request else 'N/A' }}</pre>
+  </div>
+  
+  {% if last_result.created_conversation %}
+  <div class="card">
+    <h3>🆕 Created Conversation</h3>
+    <pre>{{ last_result.created_conversation | tojson(indent=2) }}</pre>
+  </div>
+  {% endif %}
+  
+  <div class="card">
+    <h3>📥 Response (Status: {{ last_result.status_code or 'N/A' }})</h3>
+    {% if last_result.error %}
+    <p style="color: #e74c3c; font-weight: bold;">❌ Error: {{ last_result.error }}</p>
+    {% endif %}
+    <pre>{{ last_result.response | tojson(indent=2) if last_result.response else 'No response data' }}</pre>
+  </div>
+  
+  <div class="card">
+    <h3>📋 Full Result</h3>
+    <pre>{{ last_result | tojson(indent=2) }}</pre>
+  </div>
+  {% else %}
+  <div class="card">
+    <h3>Last Result</h3>
+    <pre>No result yet.</pre>
+  </div>
+  {% endif %}
+{% endblock %}

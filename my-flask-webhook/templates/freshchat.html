@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Freshchat Integration</h1>
+  
+  <div class="card">
+    <h3>Configuration</h3>
+    <p>FRESHCHAT_BASE_URL: <span class="status {{ 'ok' if freshchat_base_url else 'warn' }}">{{ freshchat_base_url or 'Not set' }}</span></p>
+    <p>FRESHCHAT_TOKEN: <span class="status {{ 'ok' if has_freshchat_token else 'warn' }}">{{ 'Set' if has_freshchat_token else 'Not set' }}</span></p>
+    <p>FRESHCHAT_PUBLIC_KEY_PEM: <span class="status {{ 'ok' if has_freshchat_public_key else 'warn' }}">{{ 'Set (验证已启用)' if has_freshchat_public_key else 'Not set (跳过签名验证)' }}</span></p>
+  </div>
+
+  <div class="card">
+    <h3>🔗 Webhook URL</h3>
+    <p>在 Freshchat 后台配置此 Webhook URL：</p>
+    <pre style="background: #2c3e50; color: #ecf0f1; padding: 12px; border-radius: 4px; overflow-x: auto;">https://your-domain.com/freshchat-webhook</pre>
+    <p class="meta">本地测试: http://localhost:5001/freshchat-webhook</p>
+    <p class="meta">需要订阅的事件: <code>message_create</code></p>
+  </div>
+
+  <div class="card">
+    <h3>📋 工作流程</h3>
+    <ol style="line-height: 1.8;">
+      <li>用户在 Freshchat 发送消息</li>
+      <li>Freshchat 推送 webhook 到 <code>/freshchat-webhook</code></li>
+      <li>系统调用 GPTBots Agent API 获取 AI 回复</li>
+      <li>系统将 AI 回复发送回 Freshchat</li>
+      <li>用户在 Freshchat 中看到 AI 回复</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h3>🧪 测试模拟 Webhook</h3>
+    <form method="post" action="/freshchat/test">
+      <label for="test_message">模拟用户消息</label>
+      <textarea id="test_message" name="message" placeholder="输入测试消息">你好</textarea>
+      <label for="test_conversation_id" style="margin-top: 12px;">Freshchat Conversation ID (可选)</label>
+      <input type="text" id="test_conversation_id" name="conversation_id" placeholder="留空使用测试 ID">
+      <label for="test_user_id" style="margin-top: 12px;">User ID (可选)</label>
+      <input type="text" id="test_user_id" name="user_id" placeholder="留空使用测试 ID">
+      <div style="margin-top: 12px;">
+        <button type="submit">测试 AI 回复</button>
+      </div>
+    </form>
+  </div>
+
+  {% if test_result %}
+  <div class="card">
+    <h3>🧪 测试结果</h3>
+    <pre>{{ test_result | tojson(indent=2) }}</pre>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h3>💡 注意事项</h3>
+    <ul style="line-height: 1.8;">
+      <li>确保 GPTBots Agent API 已启用</li>
+      <li>Freshchat Token 需要有发送消息的权限</li>
+      <li>如果未配置 Public Key，签名验证会被跳过（仅用于测试）</li>
+      <li>生产环境建议启用签名验证以确保安全</li>
+      <li>查看 <a href="/webhooks" style="color: #3498db;">Webhook 日志</a> 了解详细的请求信息</li>
+    </ul>
+  </div>
+{% endblock %}

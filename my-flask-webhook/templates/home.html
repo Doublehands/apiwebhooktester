@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>🚀 API + Webhook Tester</h1>
+  
+  <div class="card">
+    <p>这个服务用于测试 GPTBots Agent API 和 Freshchat Webhook 集成。</p>
+    <p class="meta">选择下方的功能页面开始测试</p>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h3>🤖 Agent API</h3>
+      <p>测试 GPTBots Agent API 调用</p>
+      <p class="meta">创建会话、发送消息、查看详细的请求和响应</p>
+      <a href="/agent" style="display: inline-block; margin-top: 12px; padding: 8px 16px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">进入测试</a>
+    </div>
+    
+    <div class="card">
+      <h3>💬 Live Chat</h3>
+      <p>实时聊天测试（Freshchat 气泡）</p>
+      <p class="meta">在真实的聊天界面中测试完整流程</p>
+      <a href="/chat" style="display: inline-block; margin-top: 12px; padding: 8px 16px; background: #16a34a; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">开始聊天</a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h3>🔧 Freshchat 配置</h3>
+      <p>查看和测试 Freshchat 集成配置</p>
+      <p class="meta">模拟测试、Webhook 配置说明</p>
+      <a href="/freshchat" style="display: inline-block; margin-top: 12px; padding: 8px 16px; background: #7c3aed; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">查看配置</a>
+    </div>
+    
+    <div class="card">
+      <h3>📊 Webhook 日志</h3>
+      <p>查看所有接收到的 webhook 请求</p>
+      <p class="meta">已接收: <span class="status ok">{{ webhook_count }}</span> 条</p>
+      <a href="/webhooks" style="display: inline-block; margin-top: 12px; padding: 8px 16px; background: #ea580c; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">查看日志</a>
+    </div>
+  </div>
+
+  <div class="card" style="background: #f0f9ff; border-left: 4px solid #0284c7;">
+    <h3>📋 系统状态</h3>
+    <p>Agent API: <span class="status {{ 'ok' if agent_base_url and has_agent_key else 'warn' }}">{{ 'Ready' if (agent_base_url and has_agent_key) else 'Not Configured' }}</span></p>
+    <p>Agent Base URL: <span class="status {{ 'ok' if agent_base_url else 'warn' }}">{{ agent_base_url or 'Not set' }}</span></p>
+    <p>Agent API Key: <span class="status {{ 'ok' if has_agent_key else 'warn' }}">{{ 'Set' if has_agent_key else 'Not set' }}</span></p>
+  </div>
+
+  <div class="card">
+    <h3>🔗 Webhook 端点</h3>
+    <p><strong>Agent Webhook:</strong> <code>/agent/webhook</code></p>
+    <p><strong>Freshchat Webhook:</strong> <code>/freshchat-webhook</code></p>
+    <p class="meta">部署后需要在对应平台配置这些 URL</p>
+  </div>
+{% endblock %}
