@@ -152,6 +152,7 @@
         <p>你也可以使用命令行测试：</p>
         <pre>curl -X POST https://apiwebhooktester-z83n.vercel.app/freshchat-webhook \
   -H "Content-Type: application/json" \
+  -H "X-Test-Mode: true" \
   -d '{
     "action": "message_create",
     "data": {
@@ -169,6 +170,9 @@
       }
     }
   }'</pre>
+        <p style="margin-top: 12px; color: #856404; background: #fff3cd; padding: 8px; border-radius: 4px;">
+            <strong>💡 提示:</strong> <code>X-Test-Mode: true</code> header 用于跳过签名验证（仅用于测试）
+        </p>
     </div>
 
     <div class="card">

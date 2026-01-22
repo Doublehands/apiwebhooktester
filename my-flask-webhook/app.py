@@ -79,16 +79,18 @@ def webhook():
     # 获取签名和 payload
     signature = request.headers.get('X-Freshchat-Signature')
     payload = request.get_data(as_text=True)
+    test_mode = request.headers.get('X-Test-Mode') == 'true'  # 测试模式标记
     
     print(f"📋 Headers: {dict(request.headers)}")
     print(f"🔐 Signature: {signature[:50] if signature else 'None'}...")
+    print(f"🧪 Test Mode: {test_mode}")
     
-    # 验证签名（如果配置了 Public Key）
-    if FRESHCHAT_PUBLIC_KEY:
+    # 验证签名（如果配置了 Public Key 且不是测试模式）
+    if FRESHCHAT_PUBLIC_KEY and not test_mode:
         print("🔒 开始验证签名...")
         if not signature:
             print("❌ 缺少签名")
-            return jsonify({'error': 'Missing signature'}), 401
+            return jsonify({'error': 'Missing signature', 'hint': 'Add X-Test-Mode: true header to skip signature verification for testing'}), 401
         try:
             signature_bytes = base64.b64decode(signature)
             FRESHCHAT_PUBLIC_KEY.verify(
@@ -100,9 +102,12 @@ def webhook():
             print("✅ 签名验证通过")
         except Exception as e:
             print(f"❌ 签名验证失败: {e}")
-            return jsonify({'error': 'Invalid signature'}), 401
+            return jsonify({'error': 'Invalid signature', 'hint': 'Add X-Test-Mode: true header to skip signature verification for testing'}), 401
     else:
-        print("⚠️  跳过签名验证（未配置 Public Key）")
+        if test_mode:
+            print("⚠️  测试模式：跳过签名验证")
+        else:
+            print("⚠️  跳过签名验证（未配置 Public Key）")
 
     # 解析 JSON 数据
     try:
@@ -354,11 +359,14 @@ def webhook_test_send():
     }
     
     try:
-        # 发送到 webhook 端点
+        # 发送到 webhook 端点（添加测试模式 header 跳过签名验证）
         response = requests.post(
             f'{request.host_url}freshchat-webhook',
             json=webhook_data,
-            headers={'Content-Type': 'application/json'},
+            headers={
+                'Content-Type': 'application/json',
+                'X-Test-Mode': 'true'  # 测试模式，跳过签名验证
+            },
             timeout=30
         )
         
