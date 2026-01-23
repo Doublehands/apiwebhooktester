@@ -526,9 +526,10 @@ def send_response_to_freshchat(conversation_id, user_id, response):
     print(f"{'='*70}")
     print(f"Conversation ID: {conversation_id}")
     print(f"User ID: {user_id}")
-    print(f"Response: {response[:200]}...")
+    print(f"Response (长度 {len(response)}): {response[:200]}...")
     print(f"Actor ID: {FRESHCHAT_ACTOR_ID}")
-    print(f"Token: {FRESHCHAT_TOKEN[:50]}...")
+    print(f"Token 长度: {len(FRESHCHAT_TOKEN)}")
+    print(f"Token 前缀: {FRESHCHAT_TOKEN[:50]}...")
     
     url = f"{FRESHCHAT_BASE_URL}/conversations/{conversation_id}/messages"
     headers = {
@@ -558,19 +559,50 @@ def send_response_to_freshchat(conversation_id, user_id, response):
     print(f"{'='*70}\n")
     
     try:
+        print("🔄 正在发送 HTTP POST 请求...")
         resp = requests.post(url, headers=headers, json=body, timeout=30)
-        resp.raise_for_status()
-        print(f"✅ 成功发送回复到 Freshchat: {conversation_id}")
+        
+        print(f"📥 收到响应:")
+        print(f"   HTTP 状态码: {resp.status_code}")
+        print(f"   响应 Headers: {dict(resp.headers)}")
+        
         try:
-            print(f"   Response: {resp.json()}")
+            response_json = resp.json()
+            print(f"   响应 Body (JSON): {json.dumps(response_json, indent=2, ensure_ascii=False)}")
         except:
-            print(f"   Response: {resp.text}")
-        return True
-    except Exception as e:
-        print(f"❌ 发送回复到 Freshchat 失败: {e}")
+            print(f"   响应 Body (Text): {resp.text}")
+        
+        # 检查状态码
+        if resp.status_code in [200, 201]:
+            print(f"✅ 成功发送回复到 Freshchat: {conversation_id}")
+            return True
+        else:
+            print(f"⚠️  Freshchat 返回非成功状态码: {resp.status_code}")
+            resp.raise_for_status()
+            return False
+            
+    except requests.exceptions.Timeout:
+        print(f"❌ 请求超时（30秒）")
+        return False
+    except requests.exceptions.HTTPError as e:
+        print(f"❌ HTTP 错误: {e}")
         if hasattr(e, 'response') and e.response is not None:
             print(f"   状态码: {e.response.status_code}")
             print(f"   响应内容: {e.response.text}")
+            
+            # 根据状态码提供具体建议
+            if e.response.status_code == 401:
+                print(f"   💡 建议: 检查 FRESHCHAT_TOKEN 是否正确")
+            elif e.response.status_code == 404:
+                print(f"   💡 建议: 检查 Conversation ID, User ID 或 Actor ID 是否正确")
+            elif e.response.status_code == 400:
+                print(f"   💡 建议: 检查请求 body 格式")
+        return False
+    except Exception as e:
+        print(f"❌ 发送回复到 Freshchat 失败: {e}")
+        print(f"   错误类型: {type(e).__name__}")
+        import traceback
+        print(f"   堆栈跟踪:\n{traceback.format_exc()}")
         return False
 
 def create_conversation(user_id):

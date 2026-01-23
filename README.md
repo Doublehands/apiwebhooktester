@@ -1,163 +1,209 @@
-# API Webhook Tester
+# 🚀 Freshchat + GPTBots 集成
 
-用于测试 AI Agent API 和 Webhook 的 Web 应用
+## 📋 项目概述
 
-## ✨ 新功能（v2.0）
+这是一个将 Freshchat 与 GPTBots AI Agent 集成的 Webhook 服务。用户在 Freshchat 中发送消息后，系统会自动调用 AI Agent 并将回复发送回 Freshchat。
 
-### 🔗 会话 ID 映射与缓存
-- ✅ 自动维护 Freshchat 和 GPTBots 之间的会话映射
-- ✅ 确保同一 Freshchat 会话的多条消息使用同一 GPTBots 会话
-- ✅ 保持对话上下文连续性
+### 核心功能
 
-### 🚫 消息去重
-- ✅ 防止重复消息被多次处理
-- ✅ 基于 `message_id` 的去重机制
-- ✅ 自动清理历史记录（保留最近 1000 条）
+- ✅ 接收 Freshchat Webhook 消息
+- ✅ 调用 GPTBots AI Agent 获取回复
+- ✅ 自动维护会话映射（Freshchat ↔ GPTBots）
+- ✅ 消息去重（防止重复处理）
+- ✅ 发送 AI 回复到 Freshchat
+- ✅ 详细日志和调试工具
 
-### 🔍 调试工具
-- ✅ `/debug/conversations` - 查看当前会话映射状态
-- ✅ `/webhooks` - 查看 webhook 日志
-- ✅ 详细的控制台日志输出
+### 📚 文档导航
 
-## 快速启动
+- **[README.md](./README.md)** - 项目概述和快速开始（本文档）
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - 详细部署指南（Vercel/本地）
+- **[TESTING.md](./TESTING.md)** - 测试指南和工具说明
+
+---
+
+## ⚡ 快速部署（5分钟）
+
+### 步骤 1: 部署到 Vercel
 
 ```bash
-cd /Users/jiaqi/Desktop/GPTBots/apiwebhooktester/my-flask-webhook
-source ../venv/bin/activate
-python app.py
+# 安装 Vercel CLI
+npm install -g vercel
+
+# 进入项目目录
+cd /Users/jiaqi/Desktop/GPTBots/apiwebhooktester
+
+# 部署
+vercel --prod
+
+# 重要：Root Directory 选择 my-flask-webhook
 ```
 
-服务启动后访问：
-- **首页**: http://localhost:5001/
-- **Agent 测试页**: http://localhost:5001/agent
-- **实时聊天页**: http://localhost:5001/chat （嵌入 Freshchat 气泡）
-- **Freshchat 配置页**: http://localhost:5001/freshchat
-- **Webhook 日志页**: http://localhost:5001/webhooks
-- **🆕 会话映射调试**: http://localhost:5001/debug/conversations
+### 步骤 2: 配置环境变量
 
-## 🧪 完整流程测试
-
-运行自动化测试脚本：
+在 **Vercel Dashboard** → 项目 → **Settings** → **Environment Variables** 添加：
 
 ```bash
-cd my-flask-webhook
-python test_full_flow.py
-```
-
-测试内容：
-- ✅ 单条消息处理
-- ✅ 会话映射创建
-- ✅ 重复消息过滤
-- ✅ 会话连续性验证
-
-## 已配置的服务
-
-### GPTBots API（新加坡节点）
-- **Base URL**: `https://api-sg.gptbots.ai`
-- **API Key**: `app-hhnASRDrU1qZZfSfQJICsXd1`
-- **创建会话**: `/v1/conversation`
-- **发送消息**: `/v2/conversation/message`
-
-### Freshchat
-- **Base URL**: `https://zego-933915710582838602-cf5ef642f0f082017690489.freshchat.com/v2`
-- **Token**: `eyJraWQiOiJjdXN0b20tb2F1dGgta2V5aWQiLCJhbGciOiJIUzI1NiIsInR5cCI6Ik` (需要完整 Token)
-- **Actor ID**: `gptbots_agent` (默认值，需替换为实际的 Freshchat Agent ID)
-- **Webhook**: `/freshchat-webhook`
-
-**⚠️ 重要：需要在 Freshchat 后台获取完整信息**
-- 完整的 API Token（JWT 格式，包含 3 部分用 `.` 分隔）
-- Agent ID（UUID 格式，如 `1de5d130-1c62-48cf-8349-1b39c60d0c28`）
-- Public Key（可选，用于 Webhook 签名验证）
-
-## 环境变量（可选覆盖）
-
-```bash
-export AGENT_BASE_URL="https://api-sg.gptbots.ai"
-export AGENT_API_KEY="app-hhnASRDrU1qZZfSfQJICsXd1"
-export AGENT_CONVERSATION_PATH="/v1/conversation"
-export AGENT_SEND_PATH="/v2/conversation/message"
-export AGENT_TIMEOUT="120"
+# GPTBots 配置
+AGENT_BASE_URL=https://api-sg.gptbots.ai
+AGENT_API_KEY=app-hhnASRDrU1qZZfSfQJICsXd1
 
 # Freshchat 配置
-export FRESHCHAT_BASE_URL="https://zego-933915710582838602-cf5ef642f0f082017690489.freshchat.com/v2"
-export FRESHCHAT_TOKEN="your-complete-jwt-token"
-export FRESHCHAT_ACTOR_ID="your-agent-id-uuid"
-export FRESHCHAT_PUBLIC_KEY_PEM="-----BEGIN PUBLIC KEY-----..."  # 可选
+FRESHCHAT_BASE_URL=https://zego-933915710582838602-cf5ef642f0f082017690489.freshchat.com/v2
+FRESHCHAT_TOKEN=你的完整JWT Token
+FRESHCHAT_ACTOR_ID=2e6a98aa-5155-4b3e-9745-96a784e79eb2
+FRESHCHAT_PUBLIC_KEY_PEM=-----BEGIN RSA PUBLIC KEY-----...（可选）
 ```
 
-## 检查 Freshchat 配置
+**添加后务必点击 Redeploy！**
 
-运行配置检查脚本：
+### 步骤 3: 配置 Freshchat Webhook
+
+1. Freshchat Dashboard → **Settings** → **Webhooks**
+2. 添加 Webhook：
+   - URL: `https://你的域名.vercel.app/freshchat-webhook`
+   - Events: ✅ `message_create`
+   - Status: Active
+3. 保存
+
+### 步骤 4: 测试
+
+在 Freshchat 聊天窗口发送消息，应该在 3-5 秒内收到 AI 回复。
+
+---
+
+## 📁 项目结构
+
+```
+apiwebhooktester/
+├── my-flask-webhook/           # 主应用目录
+│   ├── app.py                  # Flask 应用主文件
+│   ├── vercel.json             # Vercel 配置
+│   ├── requirements.txt        # Python 依赖
+│   ├── runtime.txt             # Python 版本
+│   ├── templates/              # HTML 模板
+│   │   ├── home.html           # 主页
+│   │   ├── agent.html          # Agent 测试页
+│   │   ├── webhooks.html       # Webhook 日志页
+│   │   ├── freshchat.html      # Freshchat 配置页
+│   │   └── chat.html           # 聊天测试页
+│   ├── test_full_flow.py       # 完整流程测试（本地）
+│   ├── diagnose_freshchat.py   # Freshchat API 诊断
+│   └── get_agents.py           # 获取 Freshchat Agents
+├── README.md                   # 项目概述（本文档）
+├── DEPLOYMENT.md               # 部署指南
+├── TESTING.md                  # 测试指南
+└── QUICK_REFERENCE.md          # 快速参考
+```
+
+---
+
+## 🔧 环境变量说明
+
+| 变量名 | 必需 | 说明 |
+|--------|------|------|
+| `AGENT_BASE_URL` | ✅ | GPTBots API 地址 |
+| `AGENT_API_KEY` | ✅ | GPTBots API 密钥 |
+| `FRESHCHAT_BASE_URL` | ✅ | Freshchat API 地址 |
+| `FRESHCHAT_TOKEN` | ✅ | Freshchat JWT Token |
+| `FRESHCHAT_ACTOR_ID` | ✅ | Freshchat Agent ID |
+| `FRESHCHAT_PUBLIC_KEY_PEM` | ⚠️ | Webhook 签名验证公钥（推荐） |
+
+---
+
+## 🌐 可用端点
+
+部署后可访问以下端点：
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/health` | GET | 健康检查 |
+| `/freshchat-webhook` | POST | Freshchat Webhook 接收 |
+| `/debug/conversations` | GET | 查看会话映射状态 |
+| `/webhooks` | GET | 查看 Webhook 日志 |
+| `/` | GET | 主页 |
+| `/agent` | GET | Agent API 测试页面 |
+| `/chat` | GET | Freshchat 聊天测试页面 |
+
+---
+
+## 🔍 监控和调试
+
+### 查看实时日志
+
+**Vercel Dashboard**:
+1. 项目 → Deployments → 最新部署 → Function Logs
+
+**命令行**:
+```bash
+vercel logs https://你的域名.vercel.app --follow
+```
+
+### 查看会话映射
 
 ```bash
-cd /Users/jiaqi/Desktop/GPTBots/apiwebhooktester/my-flask-webhook
-source ../venv/bin/activate
-python check_freshchat_config.py
+curl https://你的域名.vercel.app/debug/conversations | jq
 ```
-
-这个脚本会：
-- ✅ 检查 Token 格式是否正确
-- ✅ 测试 Freshchat API 连接
-- ✅ 显示详细的配置指南
-- ✅ 提供故障排除建议
-
-## Webhook 回调地址
-
-部署后需要在 Agent 后台配置：
-- **Agent Webhook URL**: `https://your-domain.com/agent/webhook`
-- **Freshchat Webhook URL**: `https://your-domain.com/freshchat-webhook`
-
-## 使用流程
-
-### 测试 Agent API
-1. 访问 `/agent` 页面
-2. 输入 `user_id` 和消息内容
-3. 点击"发送消息"会自动创建会话并发送
-4. 查看详细的请求和响应信息
-
-### 测试 Freshchat 集成
-1. 访问 `/freshchat` 页面
-2. 在测试表单中输入消息
-3. 点击"测试 AI 回复"查看 GPTBots Agent 的响应
-4. 部署后在 Freshchat 后台配置 Webhook URL
 
 ### 查看 Webhook 日志
-- 访问 `/webhooks` 页面查看所有接收到的 webhook 请求
 
-## 本地测试 Freshchat 聊天气泡
+访问: `https://你的域名.vercel.app/webhooks`
 
-由于 Freshchat 需要公网 URL 才能触发 webhook，本地测试需要使用 ngrok：
+---
 
+## ⚠️ 常见问题
+
+### 1. AI 回复未发送到 Freshchat
+
+**症状**: AI 能处理消息但 Freshchat 未收到回复
+
+**解决方案**:
 ```bash
-# 1. 安装 ngrok
-brew install ngrok
-
-# 2. 启动 ngrok（在另一个终端）
-ngrok http 5001
-
-# 3. 复制 ngrok 提供的 HTTPS URL，例如：
-# https://abc123.ngrok.io
-
-# 4. 在 Freshchat 后台配置 Webhook：
-# URL: https://abc123.ngrok.io/freshchat-webhook
-# Event: message_create
+# 运行诊断工具
+cd my-flask-webhook
+python3 diagnose_freshchat.py
 ```
 
-然后访问 http://localhost:5001/chat 测试聊天气泡。
+常见原因：
+- Token 不完整或错误 → 重新复制完整 Token
+- Conversation 已关闭 → 在 Freshchat 中重新打开
+- Actor ID 错误 → 运行 `python3 get_agents.py` 获取正确 ID
 
-## 注意事项
+### 2. Webhook 未触发
 
-- 端口 5001（避免与 macOS AirPlay Receiver 冲突）
-- 消息发送使用 `blocking` 模式，超时 120 秒
-- Webhook 日志最多保留 200 条
-- Freshchat 聊天气泡已嵌入 `/chat` 页面
-- 本地测试需要 ngrok 等内网穿透工具
+**检查**:
+- Freshchat Webhook 配置中是否选择了 `message_create` 事件
+- Webhook URL 是否正确
+- Webhook 状态是否为 Active
+
+### 3. 会话连续性问题
+
+**说明**: Vercel Serverless 环境下，内存缓存可能不稳定
+
+**影响**: 同一用户可能创建多个 GPTBots 会话
+
+**解决**: 参考 `DEPLOYMENT.md` 中的 Vercel KV 持久化方案（可选）
+
+---
 
 ## 📚 详细文档
 
-- **[完整集成指南](./INTEGRATION_GUIDE.md)** - 详细的架构说明、部署步骤、调试技巧
-- **[Freshchat 认证指南](./FRESHCHAT_AUTH_GUIDE.md)** - Freshchat 配置和 API 使用
-- **[Vercel 部署指南](./VERCEL_DEPLOYMENT.md)** - 部署到 Vercel 的完整步骤
+需要更多信息？查看以下文档：
+
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - 详细部署指南
+  - Vercel 部署步骤
+  - 本地部署方法
+  - 环境变量配置
+  - Vercel KV 持久化设置
+  - 配置文件说明
+
+- **[TESTING.md](./TESTING.md)** - 测试指南
+  - 本地测试工具
+  - Vercel 部署测试
+  - 端到端测试流程
+  - 故障排查步骤
+  - 性能测试方法
+
+---
 
 ## 🎯 工作流程
 
@@ -166,29 +212,29 @@ ngrok http 5001
     ↓
 Freshchat Webhook → /freshchat-webhook
     ↓
-验证签名 & 检查重复
+验证签名 & 检查消息去重
     ↓
 获取或创建 GPTBots 会话 ID（会话映射）
     ↓
-调用 GPTBots API → 获取 AI 回复
+调用 GPTBots AI Agent → 获取回复
     ↓
 保存会话映射
     ↓
-发送回复到 Freshchat → 用户收到 AI 回复
+发送回复到 Freshchat
+    ↓
+用户收到 AI 回复
 ```
 
-## 🔧 故障排查
+---
 
-### 查看会话映射状态
-```bash
-curl http://localhost:5001/debug/conversations
-```
+## 🆘 需要帮助？
 
-### 查看 Webhook 日志
-访问 http://localhost:5001/webhooks
+如果遇到问题，请提供：
+1. Vercel 部署 URL
+2. Vercel Function Logs 输出
+3. 运行诊断工具的结果
 
-### 运行完整测试
-```bash
-cd my-flask-webhook
-python test_full_flow.py
-```
+---
+
+**版本**: v2.0  
+**更新日期**: 2026-01-23
