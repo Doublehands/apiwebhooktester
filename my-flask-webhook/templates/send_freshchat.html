@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freshchat 消息发送测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group label .required {
+            color: #e74c3c;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            color: #155724;
+            display: block;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 2px solid #f5c6cb;
+            color: #721c24;
+            display: block;
+        }
+
+        .result h3 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .result pre {
+            background: rgba(0,0,0,0.05);
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .quick-btn {
+            padding: 10px;
+            background: #f0f0f0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .quick-btn:hover {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .info-box h4 {
+            color: #1976D2;
+            margin-bottom: 8px;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: #333;
+        }
+
+        .info-box li {
+            margin: 5px 0;
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📤 Freshchat 消息发送测试</h1>
+            <p>测试向 Freshchat 对话发送消息的功能</p>
+        </div>
+
+        <div class="card">
+            <div class="info-box">
+                <h4>📋 使用说明</h4>
+                <ul>
+                    <li>在 Freshchat 中创建或打开一个对话</li>
+                    <li>从 Webhook 日志中获取 Conversation ID 和 User ID</li>
+                    <li>填写下方表单并点击发送</li>
+                    <li>检查 Freshchat 对话中是否收到消息</li>
+                </ul>
+            </div>
+
+            <div class="quick-actions">
+                <button class="quick-btn" onclick="fillTestData()">
+                    🧪 填充测试数据
+                </button>
+                <button class="quick-btn" onclick="clearForm()">
+                    🗑️ 清空表单
+                </button>
+                <button class="quick-btn" onclick="window.location.href='/webhooks'">
+                    📊 查看 Webhook 日志
+                </button>
+            </div>
+
+            <form id="sendMessageForm">
+                <div class="form-group">
+                    <label>
+                        Conversation ID <span class="required">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="conversation_id" 
+                        name="conversation_id" 
+                        placeholder="例如: 2669904a-a5b5-4516-a54c-b52c03ad155d"
+                        required
+                    >
+                    <small>从 Freshchat Webhook 日志中获取</small>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        User ID <span class="required">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="user_id" 
+                        name="user_id" 
+                        placeholder="例如: 29a05a7f-7cd5-4928-9d1b-ddca7c3d0b8a"
+                        required
+                    >
+                    <small>接收消息的用户 ID（通常是客户的 ID）</small>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        消息内容 <span class="required">*</span>
+                    </label>
+                    <textarea 
+                        id="message" 
+                        name="message" 
+                        placeholder="输入要发送的消息内容..."
+                        required
+                    ></textarea>
+                    <small>支持多行文本</small>
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn">
+                    发送消息到 Freshchat
+                </button>
+            </form>
+
+            <div id="result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('sendMessageForm');
+        const resultDiv = document.getElementById('result');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // 填充测试数据
+        function fillTestData() {
+            document.getElementById('conversation_id').value = 'test_conv_' + Date.now();
+            document.getElementById('user_id').value = 'test_user_' + Date.now();
+            document.getElementById('message').value = '这是一条测试消息\n时间: ' + new Date().toLocaleString('zh-CN');
+        }
+
+        // 清空表单
+        function clearForm() {
+            form.reset();
+            resultDiv.style.display = 'none';
+        }
+
+        // 表单提交
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const conversationId = document.getElementById('conversation_id').value.trim();
+            const userId = document.getElementById('user_id').value.trim();
+            const message = document.getElementById('message').value.trim();
+
+            if (!conversationId || !userId || !message) {
+                showResult('error', '请填写所有必填字段');
+                return;
+            }
+
+            // 显示加载状态
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '发送中<span class="loader"></span>';
+            resultDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/freshchat/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        conversation_id: conversationId,
+                        user_id: userId,
+                        message: message
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showResult('success', '✅ 消息发送成功', {
+                        'Conversation ID': conversationId,
+                        'User ID': userId,
+                        '消息内容': message,
+                        'Freshchat 响应': data.response
+                    });
+                } else {
+                    showResult('error', '❌ 消息发送失败', {
+                        '错误信息': data.error || '未知错误',
+                        '状态码': data.status_code || 'N/A',
+                        '详细信息': data.details || '无'
+                    });
+                }
+            } catch (error) {
+                showResult('error', '❌ 请求失败', {
+                    '错误': error.message
+                });
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '发送消息到 Freshchat';
+            }
+        });
+
+        // 显示结果
+        function showResult(type, title, details = null) {
+            resultDiv.className = `result ${type}`;
+            
+            let html = `<h3>${title}</h3>`;
+            
+            if (details) {
+                html += '<pre>';
+                for (const [key, value] of Object.entries(details)) {
+                    html += `<strong>${key}:</strong>\n`;
+                    if (typeof value === 'object') {
+                        html += JSON.stringify(value, null, 2) + '\n\n';
+                    } else {
+                        html += value + '\n\n';
+                    }
+                }
+                html += '</pre>';
+            }
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+            
+            // 滚动到结果
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    </script>
+</body>
+</html>

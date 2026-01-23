@@ -412,6 +412,62 @@ def chat_test_page():
     """Freshchat 气泡调试页面"""
     return render_template('chat_test.html')
 
+@app.route('/send-freshchat')
+def send_freshchat_page():
+    """Freshchat 消息发送测试页面"""
+    return render_template('send_freshchat.html')
+
+@app.route('/freshchat/send-message', methods=['POST'])
+def freshchat_send_message():
+    """API 端点：发送消息到 Freshchat"""
+    try:
+        data = request.json
+        conversation_id = data.get('conversation_id', '').strip()
+        user_id = data.get('user_id', '').strip()
+        message = data.get('message', '').strip()
+        
+        if not conversation_id or not user_id or not message:
+            return jsonify({
+                'success': False,
+                'error': '缺少必需参数: conversation_id, user_id, message'
+            }), 400
+        
+        print(f"\n{'='*70}")
+        print(f"📤 测试页面发送消息到 Freshchat")
+        print(f"{'='*70}")
+        print(f"Conversation ID: {conversation_id}")
+        print(f"User ID: {user_id}")
+        print(f"Message: {message}")
+        
+        # 调用发送函数
+        success = send_response_to_freshchat(conversation_id, user_id, message)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': '消息发送成功',
+                'conversation_id': conversation_id,
+                'user_id': user_id,
+                'response': '消息已成功发送到 Freshchat'
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'error': '发送消息失败，请查看服务器日志获取详细信息',
+                'conversation_id': conversation_id,
+                'user_id': user_id
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ 处理发送请求失败: {e}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'details': '服务器内部错误'
+        }), 500
+
 @app.route('/webhook-test')
 def webhook_test_page():
     """Webhook 测试页面"""

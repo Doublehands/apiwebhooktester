@@ -32,10 +32,26 @@
     </div>
     
     <div class="card">
+      <h3>📤 发送消息测试</h3>
+      <p>测试向 Freshchat 发送消息</p>
+      <p class="meta">直接发送消息到指定对话</p>
+      <a href="/send-freshchat" style="display: inline-block; margin-top: 12px; padding: 8px 16px; background: #dc2626; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">发送测试</a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
       <h3>📊 Webhook 日志</h3>
       <p>查看所有接收到的 webhook 请求</p>
       <p class="meta">已接收: <span class="status ok">{{ webhook_count }}</span> 条</p>
       <a href="/webhooks" style="display: inline-block; margin-top: 12px; padding: 8px 16px; background: #ea580c; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">查看日志</a>
+    </div>
+
+    <div class="card">
+      <h3>🧪 Webhook 测试</h3>
+      <p>手动模拟 Freshchat webhook 请求</p>
+      <p class="meta">测试 webhook 接收和处理流程</p>
+      <a href="/webhook-test" style="display: inline-block; margin-top: 12px; padding: 8px 16px; background: #059669; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">测试 Webhook</a>
     </div>
   </div>
 
