@@ -43,6 +43,16 @@ WEBHOOK_LOGS = deque(maxlen=200)
 PROCESSED_MESSAGES = {}  # 存储已处理的消息 ID，防止重复处理
 CONVERSATION_MAPPING = {}  # Freshchat conversation_id -> GPTBots conversation_id 映射
 
+def get_or_create_gptbots_conversation(freshchat_conv_id, user_id):
+    """获取或创建 GPTBots 会话 ID，确保同一个 Freshchat 会话始终使用同一个 GPTBots 会话"""
+    if freshchat_conv_id in CONVERSATION_MAPPING:
+        gptbots_conv_id = CONVERSATION_MAPPING[freshchat_conv_id]
+        print(f"🔗 使用已存在的 GPTBots 会话: {gptbots_conv_id}")
+        return gptbots_conv_id
+    else:
+        print(f"🆕 为 Freshchat 会话 {freshchat_conv_id} 创建新的 GPTBots 会话")
+        return None  # send_message 会自动创建新会话
+
 def utc_now_iso():
     return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
@@ -77,6 +87,8 @@ def webhook():
     print("\n" + "="*70)
     print("🔔 收到 Freshchat Webhook 请求")
     print("="*70)
+    print(f"📊 当前会话映射数量: {len(CONVERSATION_MAPPING)}")
+    print(f"📊 已处理消息数量: {len(PROCESSED_MESSAGES)}")
     
     # 获取签名和 payload
     signature = request.headers.get('X-Freshchat-Signature')
@@ -178,12 +190,7 @@ def webhook():
                             del PROCESSED_MESSAGES[oldest_key]
                     
                     # 获取或创建 GPTBots conversation_id（保持会话连续性）
-                    gptbots_conversation_id = CONVERSATION_MAPPING.get(conversation_id)
-                    
-                    if gptbots_conversation_id:
-                        print(f"🔗 使用已存在的 GPTBots 会话: {gptbots_conversation_id}")
-                    else:
-                        print(f"🆕 将为此 Freshchat 会话创建新的 GPTBots 会话")
+                    gptbots_conversation_id = get_or_create_gptbots_conversation(conversation_id, user_id)
                     
                     # 调用 AI Agent 获取回复
                     print("🤖 开始调用 AI Agent...")
@@ -197,35 +204,46 @@ def webhook():
                             'error': ai_result.get('error')
                         }), 500
                     
-                    # 保存会话映射
+                    # 保存会话映射（如果是新会话）
                     new_gptbots_conv_id = ai_result.get('conversation_id')
-                    if new_gptbots_conv_id and not gptbots_conversation_id:
-                        CONVERSATION_MAPPING[conversation_id] = new_gptbots_conv_id
-                        print(f"💾 保存会话映射: {conversation_id} → {new_gptbots_conv_id}")
+                    if new_gptbots_conv_id:
+                        if conversation_id not in CONVERSATION_MAPPING:
+                            CONVERSATION_MAPPING[conversation_id] = new_gptbots_conv_id
+                            print(f"💾 保存会话映射: Freshchat({conversation_id}) → GPTBots({new_gptbots_conv_id})")
+                        else:
+                            print(f"✓ 会话映射已存在: Freshchat({conversation_id}) → GPTBots({CONVERSATION_MAPPING[conversation_id]})")
                     
                     # 提取 AI 回复
                     ai_response = extract_ai_response(ai_result)
                     print(f"💡 AI 回复: {ai_response[:100]}...")
                     
                     # 发送回复到 Freshchat
-                    print("📤 发送回复到 Freshchat...")
+                    print("📤 准备发送回复到 Freshchat...")
                     success = send_response_to_freshchat(conversation_id, user_id, ai_response)
                     
                     if success:
-                        print("✅ Webhook 处理完成\n")
+                        print("✅ 完整流程处理成功")
+                        print(f"   - Freshchat 会话: {conversation_id}")
+                        print(f"   - GPTBots 会话: {new_gptbots_conv_id}")
+                        print(f"   - 用户消息: {user_message[:50]}...")
+                        print(f"   - AI 回复: {ai_response[:50]}...")
+                        print("="*70 + "\n")
                         return jsonify({
                             'status': 'success',
-                            'message': 'Message processed',
-                            'conversation_id': conversation_id,
+                            'message': 'Message processed successfully',
+                            'freshchat_conversation_id': conversation_id,
                             'gptbots_conversation_id': new_gptbots_conv_id,
-                            'user_id': user_id
+                            'user_id': user_id,
+                            'ai_response': ai_response[:100] + '...' if len(ai_response) > 100 else ai_response
                         }), 200
                     else:
-                        print("⚠️  回复发送失败\n")
+                        print("⚠️  AI 处理成功，但发送回复到 Freshchat 失败")
+                        print("="*70 + "\n")
                         return jsonify({
                             'status': 'partial_success',
-                            'message': 'Message received but reply failed',
-                            'conversation_id': conversation_id
+                            'message': 'AI processed but Freshchat reply failed',
+                            'freshchat_conversation_id': conversation_id,
+                            'gptbots_conversation_id': new_gptbots_conv_id
                         }), 200
                 else:
                     print("⚠️  消息格式不正确或不包含文本内容")
@@ -255,6 +273,26 @@ def agent_webhook():
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({'status': 'ok'}), 200
+
+@app.route('/debug/conversations', methods=['GET'])
+def debug_conversations():
+    """查看当前的会话映射状态"""
+    return jsonify({
+        'conversation_mappings': {
+            'count': len(CONVERSATION_MAPPING),
+            'mappings': [
+                {
+                    'freshchat_conversation_id': fc_id,
+                    'gptbots_conversation_id': gb_id
+                }
+                for fc_id, gb_id in CONVERSATION_MAPPING.items()
+            ]
+        },
+        'processed_messages': {
+            'count': len(PROCESSED_MESSAGES),
+            'recent': list(PROCESSED_MESSAGES.keys())[-10:] if PROCESSED_MESSAGES else []
+        }
+    }), 200
 
 @app.route('/')
 def home_page():

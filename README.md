@@ -2,6 +2,23 @@
 
 用于测试 AI Agent API 和 Webhook 的 Web 应用
 
+## ✨ 新功能（v2.0）
+
+### 🔗 会话 ID 映射与缓存
+- ✅ 自动维护 Freshchat 和 GPTBots 之间的会话映射
+- ✅ 确保同一 Freshchat 会话的多条消息使用同一 GPTBots 会话
+- ✅ 保持对话上下文连续性
+
+### 🚫 消息去重
+- ✅ 防止重复消息被多次处理
+- ✅ 基于 `message_id` 的去重机制
+- ✅ 自动清理历史记录（保留最近 1000 条）
+
+### 🔍 调试工具
+- ✅ `/debug/conversations` - 查看当前会话映射状态
+- ✅ `/webhooks` - 查看 webhook 日志
+- ✅ 详细的控制台日志输出
+
 ## 快速启动
 
 ```bash
@@ -16,6 +33,22 @@ python app.py
 - **实时聊天页**: http://localhost:5001/chat （嵌入 Freshchat 气泡）
 - **Freshchat 配置页**: http://localhost:5001/freshchat
 - **Webhook 日志页**: http://localhost:5001/webhooks
+- **🆕 会话映射调试**: http://localhost:5001/debug/conversations
+
+## 🧪 完整流程测试
+
+运行自动化测试脚本：
+
+```bash
+cd my-flask-webhook
+python test_full_flow.py
+```
+
+测试内容：
+- ✅ 单条消息处理
+- ✅ 会话映射创建
+- ✅ 重复消息过滤
+- ✅ 会话连续性验证
 
 ## 已配置的服务
 
@@ -119,3 +152,43 @@ ngrok http 5001
 - Webhook 日志最多保留 200 条
 - Freshchat 聊天气泡已嵌入 `/chat` 页面
 - 本地测试需要 ngrok 等内网穿透工具
+
+## 📚 详细文档
+
+- **[完整集成指南](./INTEGRATION_GUIDE.md)** - 详细的架构说明、部署步骤、调试技巧
+- **[Freshchat 认证指南](./FRESHCHAT_AUTH_GUIDE.md)** - Freshchat 配置和 API 使用
+- **[Vercel 部署指南](./VERCEL_DEPLOYMENT.md)** - 部署到 Vercel 的完整步骤
+
+## 🎯 工作流程
+
+```
+用户在 Freshchat 发送消息
+    ↓
+Freshchat Webhook → /freshchat-webhook
+    ↓
+验证签名 & 检查重复
+    ↓
+获取或创建 GPTBots 会话 ID（会话映射）
+    ↓
+调用 GPTBots API → 获取 AI 回复
+    ↓
+保存会话映射
+    ↓
+发送回复到 Freshchat → 用户收到 AI 回复
+```
+
+## 🔧 故障排查
+
+### 查看会话映射状态
+```bash
+curl http://localhost:5001/debug/conversations
+```
+
+### 查看 Webhook 日志
+访问 http://localhost:5001/webhooks
+
+### 运行完整测试
+```bash
+cd my-flask-webhook
+python test_full_flow.py
+```
